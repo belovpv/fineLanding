@@ -1,0 +1,7 @@
+messages: [
+          {name: 'SET_PROGRAM_CONTROL', data: {enable: true/false}},
+          {name: 'LAND', data: {precision: true/false},
+          {name: 'GO_HOME'},
+          {name: 'MOVE', data: {yaw: 0-360, pitch: 0-maxVelocity, roll: 0-maxVelocity, throttle: 0-maxVerticalVelocity}},
+          {name: 'SET_GIMBAL', data: {pitch: 0--90}}
+]

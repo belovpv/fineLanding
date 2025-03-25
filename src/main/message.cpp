@@ -88,7 +88,7 @@ namespace fineLanding
         bool success = js["data"]["success"];
         if (!success)
         {
-            error = js["error"];
+            error = js["data"]["error"];
         }
     }
 
@@ -126,7 +126,8 @@ namespace fineLanding
         }
         catch (const std::exception &exc)
         {
-            std::cerr << exc.what();
+            std::cerr << "Error parsing message" << exc.what();
+            return NULL;
         }
         return pMessage;
     }

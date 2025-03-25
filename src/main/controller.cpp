@@ -39,12 +39,17 @@ namespace fineLanding
             SetProgramControlOutMessage msg(true);
             controller.sendCommandSync(&msg);
             InMessage *inpmsg = controller.readResponse();
-            if (inpmsg == NULL || !inpmsg->success)
+            if (inpmsg == NULL)
+            {
+                return;
+            }
+            else if (!inpmsg->success)
             {
                 std::cerr << "error response from craft " << inpmsg->error << std::endl;
                 return;
             }
         }
+        return;
         // cycle of moving craft to defined point
         while (controller.isWorking)
         {
@@ -177,7 +182,7 @@ namespace fineLanding
         bzero(buffer, buffer_size + 1);
         int n = 0;
         std::string sResponse;
-        n = read(_sock, buffer, buffer_size);
+        n = recv(_sock, buffer, buffer_size, 0);
         while (n > 0)
         {
             sResponse += std::string(buffer);
@@ -194,14 +199,17 @@ namespace fineLanding
         }
         if (sResponse.length() == 0)
         {
-            std::cerr << "error reading from socket" << std::endl;
+            std::cerr << "No response from server" << std::endl;
             return NULL;
         }
         else
         {
-            std::cerr << sResponse << std::endl;
+            std::cout << sResponse << std::endl;
             InMessage *pResponse = InMessage::fromString(sResponse);
-            std::cerr << "got message " << pResponse->name << std::endl;
+            if (pResponse != NULL)
+            {
+                std::cout << "got message " << pResponse->name << std::endl;
+            }
             return pResponse;
         }
     }

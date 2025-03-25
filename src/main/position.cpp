@@ -19,6 +19,8 @@ namespace fineLanding
 
     bool Position::read()
     {
+        //2 bytes - distance, meters
+        //2 bytes - azimuth * 100, degrees
         return false;
     }
 
