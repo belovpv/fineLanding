@@ -20,7 +20,7 @@ namespace fineLanding
 
     private:
         bool connect(const char*, int);
-        InMessage* readResponse();
+        InMessage* readResponse(int timeout);
         bool isWorking;
         int _sock;
     };

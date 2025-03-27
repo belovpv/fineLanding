@@ -67,11 +67,11 @@ namespace fineLanding
         return js.dump();
     }
 
-    RequestStateOutMessage::RequestStateOutMessage() : OutMessage("REQUEST_STATE")
+    RequestPositionOutMessage::RequestPositionOutMessage() : OutMessage("REQUEST_POSITION")
     {
     }
 
-    std::string RequestStateOutMessage::getBytes()
+    std::string RequestPositionOutMessage::getBytes()
     {
         json js;
         js["name"] = name;
@@ -85,17 +85,16 @@ namespace fineLanding
     {
         json js = json::parse(sMessage);
         name = js["name"];
-        bool success = js["data"]["success"];
+        success = js["data"]["success"];
         if (!success)
         {
             error = js["data"]["error"];
         }
     }
 
-    RequestStateInMessage::RequestStateInMessage(std::string &sMessage)
+    RequestPositionInMessage::RequestPositionInMessage(std::string &sMessage) : InMessage(sMessage)
     {
         json js = json::parse(sMessage);
-        name = js["name"];
         lat = js["data"]["lat"];
         lon = js["data"]["lon"];
     }
@@ -114,9 +113,9 @@ namespace fineLanding
                 return pMessage;
             }
 
-            if (sName == "REQUEST_STATE")
+            if (sName == "REQUEST_POSITION")
             {
-                pMessage = new RequestStateInMessage(sMessage);
+                pMessage = new RequestPositionInMessage(sMessage);
             }
             else
             {

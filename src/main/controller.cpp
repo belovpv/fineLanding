@@ -38,7 +38,7 @@ namespace fineLanding
             // set craft program control
             SetProgramControlOutMessage msg(true);
             controller.sendCommandSync(&msg);
-            InMessage *inpmsg = controller.readResponse();
+            InMessage *inpmsg = controller.readResponse(1000);
             if (inpmsg == NULL)
             {
                 return;
@@ -49,12 +49,10 @@ namespace fineLanding
                 return;
             }
         }
-        return;
         // cycle of moving craft to defined point
         while (controller.isWorking)
         {
             std::this_thread::sleep_for(1000ms);
-            std::cout << "controller cycle" << std::endl;
             // getting craft control command
             OutMessage *pcmd = controller.getCommand(position, latHome, lonHome);
             if (pcmd == NULL)
@@ -64,6 +62,7 @@ namespace fineLanding
             else
             {
                 controller.sendCommandSync(pcmd);
+                InMessage *pMsgIn = controller.readResponse(1000);
                 // in place, go out of cycle
                 if (dynamic_cast<LandOutMessage *>(pcmd) != nullptr)
                 {
@@ -86,21 +85,27 @@ namespace fineLanding
         OutMessage *pRet = NULL;
         // position.getLocation();
         // temporarily get position from craft
-        RequestStateOutMessage cmd;
+        RequestPositionOutMessage cmd;
         sendCommandSync((OutMessage *)&cmd);
-        InMessage *pResponse = readResponse();
+        InMessage *pResponse = readResponse(1000);
         if (pResponse != NULL)
         {
             if (pResponse->success)
             {
-                double lat = ((RequestStateInMessage *)pResponse)->lat;
-                double lon = ((RequestStateInMessage *)pResponse)->lon;
-                std::cerr << AppLog::timestamp() << "got craft position: " << lat << " " << lon << std::endl;
+                double lat = ((RequestPositionInMessage *)pResponse)->lat;
+                double lon = ((RequestPositionInMessage *)pResponse)->lon;
+                std::cout << "got craft position: " << lat << " " << lon << std::endl;
+                std::cout << "home position: " << latHome << " " << lonHome << std::endl;
                 // calculating craft yaw
-                double yaw = Math::getDirectionAngle(latHome, lonHome, lat, lon);
-                std::cerr << "direction angle: " << yaw << std::endl;
-                double dist = Math::getDistance(latHome, lonHome, lat, lon);
-                std::cerr << "distance: " << dist << std::endl;
+                double yaw = Math::getDirectionAngle(lat, lon, latHome, lonHome);
+                std::cout << "direction angle: " << yaw << std::endl;
+                if (yaw > 180)
+                {
+                    yaw -= 360;
+                }
+                yaw -= 90;
+                double dist = Math::getDistance(lat, lon, latHome, lonHome);
+                std::cout << "distance: " << dist << std::endl;
                 if (dist <= 1)
                 {
                     // in place, land
@@ -108,7 +113,7 @@ namespace fineLanding
                 }
                 else
                 {
-                    float pitch = dist > 10 ? 10 : 1;
+                    float pitch = dist > 10 ? 0.5 : 0.1;
                     pRet = new MoveOutMessage(yaw, pitch, 0, 0);
                 }
             }
@@ -175,18 +180,25 @@ namespace fineLanding
         }
     }
 
-    InMessage *Controller::readResponse()
+    InMessage *Controller::readResponse(int timeout)
     {
         const int buffer_size = 1024;
         char buffer[buffer_size + 1];
         bzero(buffer, buffer_size + 1);
         int n = 0;
         std::string sResponse;
+        //waiting for data arrived
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(_sock, &rfds);
+        struct timeval tv;
+        tv.tv_usec = timeout / 1000;
+        int rv = select(_sock + 1, &rfds, NULL, NULL, &tv);
+        //data arrived or timeout
         n = recv(_sock, buffer, buffer_size, 0);
         while (n > 0)
         {
             sResponse += std::string(buffer);
-            std::cout << sResponse << std::endl;
             if (n >= buffer_size)
             {
                 bzero(buffer, buffer_size + 1);
@@ -204,7 +216,7 @@ namespace fineLanding
         }
         else
         {
-            std::cout << sResponse << std::endl;
+            std::cout << sResponse;
             InMessage *pResponse = InMessage::fromString(sResponse);
             if (pResponse != NULL)
             {

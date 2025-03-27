@@ -43,10 +43,10 @@ namespace fineLanding
         virtual std::string getBytes();
     };
 
-    class RequestStateOutMessage : public OutMessage
+    class RequestPositionOutMessage : public OutMessage
     {
     public:
-        RequestStateOutMessage();
+        RequestPositionOutMessage();
         virtual std::string getBytes();
     };
 
@@ -61,10 +61,10 @@ namespace fineLanding
         std::string error;
     };
 
-    class RequestStateInMessage : public InMessage
+    class RequestPositionInMessage : public InMessage
     {
     public:
-        RequestStateInMessage(std::string &);
+        RequestPositionInMessage(std::string &);
         double lat;
         double lon;
     };
