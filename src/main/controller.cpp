@@ -1,5 +1,4 @@
 #include "controller.h"
-#include "config.h"
 #include "math.h"
 #include "appLog.h"
 
@@ -9,24 +8,20 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+double M_PER_DEGREE = 40075000 / 360;
+
 namespace fineLanding
 {
     void Controller::threadBody(Controller &controller, Position &position)
     {
-        // read config file;
-        Config config;
-        double latHome = config.getDouble("application.lat", 0);
-        double lonHome = config.getDouble("application.lon", 0);
-        std::string ip = config.getString("application.dji_ip", "");
-        int port = config.get<int>("application.dji_port", 8080);
         using namespace std::chrono_literals;
         // waiting for craft connected
         controller.isWorking = true;
         bool success;
         do
         {
-            std::cout << "connecting to craft..." << std::endl;
-            success = controller.connect(ip.c_str(), port);
+            std::cout << "соединение с БВС..." << std::endl;
+            success = controller.connect(controller.djiIp, controller.djiPort);
             if (!success)
             {
                 std::this_thread::sleep_for(5000ms);
@@ -45,16 +40,17 @@ namespace fineLanding
             }
             else if (!inpmsg->success)
             {
-                std::cerr << "error response from craft " << inpmsg->error << std::endl;
+                std::cerr << "Ошибка ответа БВС " << inpmsg->error << std::endl;
                 return;
             }
         }
+        controller.enStatus = Status::rts;
         // cycle of moving craft to defined point
         while (controller.isWorking)
         {
             std::this_thread::sleep_for(1000ms);
             // getting craft control command
-            OutMessage *pcmd = controller.getCommand(position, latHome, lonHome);
+            OutMessage *pcmd = controller.getCommand(position, controller.latHome, controller.lonHome);
             if (pcmd == NULL)
             {
                 controller.isWorking = false;
@@ -62,22 +58,42 @@ namespace fineLanding
             else
             {
                 controller.sendCommandSync(pcmd);
-                InMessage *pMsgIn = controller.readResponse(1000);
-                // in place, go out of cycle
                 if (dynamic_cast<LandOutMessage *>(pcmd) != nullptr)
                 {
+                    // waiting for landing for 10 sec and go out of cycle
+                    InMessage *pMsgIn = controller.readResponse(10000);
                     controller.isWorking = false;
+                }
+                else
+                {
+                    InMessage *pMsgIn = controller.readResponse(1000);
                 }
                 delete pcmd;
             }
         }
-        std::cout << "program stopped" << std::endl;
+        controller.dispose();
+
+        std::cout << "Поток управления БВС завершен" << std::endl;
+    }
+
+    Controller::Controller(const double latHome, const double lonHome, const char *djiIp, const int djiPort) : latHome(latHome),
+                                                                                                               lonHome(lonHome),
+                                                                                                               djiIp(djiIp),
+                                                                                                               djiPort(djiPort)
+    {
+    }
+
+    void Controller::dispose()
+    {
+        if (_sock > 0)
+        {
+            close(_sock);
+        }
     }
 
     void Controller::stop()
     {
         isWorking = false;
-        close(_sock);
     }
 
     OutMessage *Controller::getCommand(const Position &position, double latHome, double lonHome)
@@ -94,22 +110,64 @@ namespace fineLanding
             {
                 double lat = ((RequestPositionInMessage *)pResponse)->lat;
                 double lon = ((RequestPositionInMessage *)pResponse)->lon;
-                std::cout << "got craft position: " << lat << " " << lon << std::endl;
-                std::cout << "home position: " << latHome << " " << lonHome << std::endl;
+
+                double alt = ((RequestPositionInMessage *)pResponse)->alt;
                 // calculating craft yaw
                 double yaw = Math::getDirectionAngle(lat, lon, latHome, lonHome);
-                std::cout << "direction angle: " << yaw << std::endl;
+                // Угол направления для БВС
+                yaw -= 90;
                 if (yaw > 180)
                 {
                     yaw -= 360;
                 }
-                yaw -= 90;
                 double dist = Math::getDistance(lat, lon, latHome, lonHome);
-                std::cout << "distance: " << dist << std::endl;
-                if (dist <= 1)
+                if (dist < 50 && dist > 2)
+                {
+                    if (enStatus == Status::rts)
+                    {
+                        std::cout << "Подтверждение захвата оптической системой" << std::endl;
+                        enStatus = Status::optMove;
+                    }
+                }
+                else if (dist < 2)
+                {
+                    if (enStatus == Status::optMove)
+                    {
+                        std::cout << "БВС находится в точке посадки, готов к посадке" << std::endl;
+                        enStatus = Status::optLand;
+                    }
+                }
+                if (alt < 2)
+                {
+                    if (enStatus == Status::optLand)
+                    {
+                        std::cout << "Приземление БВС" << std::endl;
+                        enStatus = Status::landing;
+                    }
+                }
+                if (enStatus == Status::rts)
+                {
+                    std::cout << "Получены данные РТС: дирекционный угол" << yaw << " расстояние " << dist << std::endl;
+                }
+                else if (enStatus == Status::optMove)
+                {
+                    std::cout << "Получены данные оптической системы: дирекционный угол" << yaw << " расстояние " << dist << std::endl;
+                }
+                else if (enStatus == Status::optLand)
+                {
+                    std::cout << "Получены данные оптической системы: отклонение х" << (lon - lonHome) * M_PER_DEGREE << " отклонение у " << (lat - latHome) * M_PER_DEGREE << std::endl;
+                }
+                std::cout << "Определено положение БВС: " << lat << " " << lon << std::endl;
+                std::cout << "Высота: " << alt << std::endl;
+                std::cout << "Точка посадки БВС: " << latHome << " " << lonHome << std::endl;
+                if (enStatus == Status::optLand)
                 {
                     // in place, land
-                    pRet = new LandOutMessage(true);
+                    pRet = new MoveOutMessage(0, 0, 0, -0.5);
+                }
+                else if (enStatus == Status::landing)
+                {
+                    pRet = new LandOutMessage(false);
                 }
                 else
                 {
@@ -127,8 +185,8 @@ namespace fineLanding
      */
     void Controller::sendCommandSync(OutMessage *pcmd)
     {
-        std::cout << "sending message " << pcmd->name << std::endl;
-        std::string sBytes = pcmd->getBytes();
+        std::string sBytes = pcmd->toString();
+        std::cout << "Отправка команды " << sBytes << std::endl;
         std::vector<char> bytes(sBytes.begin(), sBytes.end());
         bytes.push_back('\n');
         // bytes.push_back('\0');
@@ -158,7 +216,7 @@ namespace fineLanding
 
         if (_sock < 0)
         {
-            std::cerr << "error creating socket" << std::endl;
+            std::cerr << "ошибка создания сокета" << std::endl;
             return false;
         }
 
@@ -170,12 +228,12 @@ namespace fineLanding
 
         if (::connect(_sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
         {
-            std::cerr << "connection failed" << std::endl;
+            std::cerr << "ошибка соединения" << std::endl;
             return false;
         }
         else
         {
-            std::cerr << "connection success" << std::endl;
+            std::cerr << "соединение установлено" << std::endl;
             return true;
         }
     }
@@ -187,14 +245,14 @@ namespace fineLanding
         bzero(buffer, buffer_size + 1);
         int n = 0;
         std::string sResponse;
-        //waiting for data arrived
+        // waiting for data arrived
         fd_set rfds;
         FD_ZERO(&rfds);
         FD_SET(_sock, &rfds);
         struct timeval tv;
         tv.tv_usec = timeout / 1000;
         int rv = select(_sock + 1, &rfds, NULL, NULL, &tv);
-        //data arrived or timeout
+        // data arrived or timeout
         n = recv(_sock, buffer, buffer_size, 0);
         while (n > 0)
         {

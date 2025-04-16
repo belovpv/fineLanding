@@ -153,6 +153,30 @@ main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/finelanding.dir/build.make CMakeFiles/finelanding.dir/main.cpp.s
 .PHONY : main.cpp.s
 
+main/config.o: main/config.cpp.o
+.PHONY : main/config.o
+
+# target to build an object file
+main/config.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/finelanding.dir/build.make CMakeFiles/finelanding.dir/main/config.cpp.o
+.PHONY : main/config.cpp.o
+
+main/config.i: main/config.cpp.i
+.PHONY : main/config.i
+
+# target to preprocess a source file
+main/config.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/finelanding.dir/build.make CMakeFiles/finelanding.dir/main/config.cpp.i
+.PHONY : main/config.cpp.i
+
+main/config.s: main/config.cpp.s
+.PHONY : main/config.s
+
+# target to generate assembly for a file
+main/config.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/finelanding.dir/build.make CMakeFiles/finelanding.dir/main/config.cpp.s
+.PHONY : main/config.cpp.s
+
 main/controller.o: main/controller.cpp.o
 .PHONY : main/controller.o
 
@@ -176,6 +200,30 @@ main/controller.s: main/controller.cpp.s
 main/controller.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/finelanding.dir/build.make CMakeFiles/finelanding.dir/main/controller.cpp.s
 .PHONY : main/controller.cpp.s
+
+main/math.o: main/math.cpp.o
+.PHONY : main/math.o
+
+# target to build an object file
+main/math.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/finelanding.dir/build.make CMakeFiles/finelanding.dir/main/math.cpp.o
+.PHONY : main/math.cpp.o
+
+main/math.i: main/math.cpp.i
+.PHONY : main/math.i
+
+# target to preprocess a source file
+main/math.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/finelanding.dir/build.make CMakeFiles/finelanding.dir/main/math.cpp.i
+.PHONY : main/math.cpp.i
+
+main/math.s: main/math.cpp.s
+.PHONY : main/math.s
+
+# target to generate assembly for a file
+main/math.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/finelanding.dir/build.make CMakeFiles/finelanding.dir/main/math.cpp.s
+.PHONY : main/math.cpp.s
 
 main/message.o: main/message.cpp.o
 .PHONY : main/message.o
@@ -237,9 +285,15 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... main/config.o"
+	@echo "... main/config.i"
+	@echo "... main/config.s"
 	@echo "... main/controller.o"
 	@echo "... main/controller.i"
 	@echo "... main/controller.s"
+	@echo "... main/math.o"
+	@echo "... main/math.i"
+	@echo "... main/math.s"
 	@echo "... main/message.o"
 	@echo "... main/message.i"
 	@echo "... main/message.s"

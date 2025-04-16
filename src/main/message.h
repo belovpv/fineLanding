@@ -13,7 +13,7 @@ namespace fineLanding
         OutMessage(const char *name);
         virtual ~OutMessage();
         const char *name;
-        virtual std::string getBytes() = 0;
+        virtual std::string toString() = 0;
     };
 
     class SetProgramControlOutMessage : public OutMessage
@@ -21,7 +21,7 @@ namespace fineLanding
     public:
         SetProgramControlOutMessage(bool enable);
         bool enable;
-        virtual std::string getBytes();
+        virtual std::string toString();
     };
 
     class LandOutMessage : public OutMessage
@@ -29,7 +29,7 @@ namespace fineLanding
     public:
         LandOutMessage(bool precision);
         bool precision;
-        virtual std::string getBytes();
+        virtual std::string toString();
     };
 
     class MoveOutMessage : public OutMessage
@@ -40,14 +40,14 @@ namespace fineLanding
         float pitchVelocity;
         float rollVelocity;
         float throttleVelocity;
-        virtual std::string getBytes();
+        virtual std::string toString();
     };
 
     class RequestPositionOutMessage : public OutMessage
     {
     public:
         RequestPositionOutMessage();
-        virtual std::string getBytes();
+        virtual std::string toString();
     };
 
     class InMessage
@@ -56,6 +56,7 @@ namespace fineLanding
         static InMessage *fromString(std::string &);
         InMessage();
         InMessage(std::string &);
+        std::string ToString();
         std::string name;
         bool success;
         std::string error;
@@ -67,6 +68,7 @@ namespace fineLanding
         RequestPositionInMessage(std::string &);
         double lat;
         double lon;
+        double alt;
     };
 
 }; // namespace fineLanding

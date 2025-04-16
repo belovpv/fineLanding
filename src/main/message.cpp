@@ -24,7 +24,7 @@ namespace fineLanding
         enable = enable1;
     }
 
-    std::string SetProgramControlOutMessage::getBytes()
+    std::string SetProgramControlOutMessage::toString()
     {
         json js;
         js["name"] = name;
@@ -38,7 +38,7 @@ namespace fineLanding
         precision = precision1;
     }
 
-    std::string LandOutMessage::getBytes()
+    std::string LandOutMessage::toString()
     {
         json js;
         js["name"] = name;
@@ -55,7 +55,7 @@ namespace fineLanding
         throttleVelocity = throttle1;
     }
 
-    std::string MoveOutMessage::getBytes()
+    std::string MoveOutMessage::toString()
     {
         json js;
         js["name"] = name;
@@ -71,7 +71,7 @@ namespace fineLanding
     {
     }
 
-    std::string RequestPositionOutMessage::getBytes()
+    std::string RequestPositionOutMessage::toString()
     {
         json js;
         js["name"] = name;
@@ -97,6 +97,7 @@ namespace fineLanding
         json js = json::parse(sMessage);
         lat = js["data"]["lat"];
         lon = js["data"]["lon"];
+        alt = js["data"]["alt"];
     }
 
     InMessage *InMessage::fromString(std::string &sMessage)
